@@ -1,0 +1,148 @@
+﻿@model List<TempoClima.Models.Cidade>
+
+@{
+    ViewBag.Title = "Home Page";
+    var cidades = new SelectList(Model, "Id", "Nome");
+}
+
+<div class="jumbotron">
+    <h1>Clima tempo simples</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="panel">
+            <div class="panel-title">
+                Cidades mais quentes hoje
+            </div>
+            <div class="panel-body">
+                @if (ViewBag.TemperaturasMaximas?.Count > 0)
+                {
+                    foreach (var temperatura in ViewBag.TemperaturasMaximas)
+                    {
+                        <div class="row">
+                            <div class="col-sm-6">
+                                @temperatura.Cidade.Nome
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        Min @temperatura.TemperaturaMinima.ToString("0")°C
+                                    </div>
+                                    <div class="col-sm-6">
+                                        Máx @temperatura.TemperaturaMaxima.ToString("0")°C
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <h5>Nenhum clima cadastrado</h5>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="panel">
+            <div class="panel-title">
+                Cidades mais frias hoje
+            </div>
+            <div class="panel-body">
+                @if (ViewBag.TemperaturasMinimas?.Count > 0)
+                {
+                    foreach (var temperatura in ViewBag.TemperaturasMinimas)
+                    {
+                        <div class="row">
+                            <div class="col-sm-6">
+                                @temperatura.Cidade.Nome
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        Min @temperatura.TemperaturaMinima.ToString("0")°C
+                                    </div>
+                                    <div class="col-sm-6">
+                                        Máx @temperatura.TemperaturaMaxima.ToString("0")°C
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else 
+                {
+                    <h5>Nenhum clima cadastrado</h5>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-10">
+ 
+    </div>
+    <div class="col-sm-2">
+        @Html.DropDownList("Cidades", cidades, new { onChange = "buscaTemperatura(event.target.value)" })
+    </div>
+</div>
+
+<div class="row">
+    <div class="col" style="text-align: center">
+        <h3>Clima para os próximos sete dias na cidade de <span id="nome-cidade" data-cidades="@Json.Encode(Model)"></span></h3>
+    </div>
+</div>
+
+<div class="row" id="previsoes">
+    
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        function buscaTemperatura(value) {
+            var cidadeAtual = document.getElementById("nome-cidade")
+
+            var cidades = JSON.parse(cidadeAtual.dataset.cidades)
+
+            cidadeAtual.innerHTML = cidades.find(item => {
+                if (item["Id"] == value) {
+                    return item["Nome"]
+                }
+            })["Nome"]
+            $.ajax(
+                {
+                    type: 'POST',
+                    url: '/Home/PrevisaoDias/' + value,
+                    success:
+                        function (response) {
+                            var semana = ["Domingo", "Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado"];
+                            var cards = ""
+                            response.forEach(e => {
+                                var date = new Date(parseInt(e.DataPrevisao.substring(6, 19)))
+                                cards += `
+                                <div class="col-sm-2">
+                                    <div class="panel">
+                                        <div class="panel-title">
+                                            ${semana[date.getDay()]}
+                                        </div>
+                                        <div class="panel-body">
+                                            ${e.Clima}
+                                            Mínima: ${e.TemperaturaMinima}°C
+                                            Máxima: ${e.TemperaturaMaxima}°C
+                                        </div>
+                                    </div>
+                                </div>`
+                            })
+                            document.getElementById("previsoes").innerHTML = cards
+                        },
+                    error:
+                        function (response) {
+                            console.log(response);
+                        }
+                });
+        }
+    </script>
+}
